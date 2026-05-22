@@ -47,7 +47,7 @@ git clone https://github.com/BambooMaster/pico_usb_i2s_speaker.git
 cd pico_usb_i2s_speaker
 git submodule update --init
 mkdir build && cd build
-cmke .. && make -j4
+cmake .. && make -j4
 ```
 
 ## 動作確認環境
