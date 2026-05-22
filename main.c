@@ -84,7 +84,7 @@ uint8_t current_resolution;
 // Buffer for speaker data
 // uint16_t i2s_dummy_buffer[CFG_TUD_AUDIO_FUNC_1_EP_OUT_SW_BUF_SZ / 2];
 uint8_t spk_buf[CFG_TUD_AUDIO_FUNC_1_EP_OUT_SW_BUF_SZ];
-int spk_data_size;
+volatile int spk_data_size;
 
 void led_blinking_task(void);
 void audio_task(void);
