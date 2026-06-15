@@ -32,6 +32,7 @@
 #include "usb_descriptors.h"
 
 #include "pico/stdlib.h"
+#include "pico/sync.h"
 #include "hardware/clocks.h"
 #include "hardware/dma.h"
 #include "pico/multicore.h"
@@ -86,7 +87,8 @@ uint8_t current_resolution;
 // Buffer for speaker data
 // uint16_t i2s_dummy_buffer[CFG_TUD_AUDIO_FUNC_1_EP_OUT_SW_BUF_SZ / 2];
 uint8_t spk_buf[CFG_TUD_AUDIO_FUNC_1_EP_OUT_SW_BUF_SZ];
-volatile int spk_data_size;
+// Protected with interrupt disable for thread-safe access from USB ISR and Timer ISR
+static uint32_t spk_data_size = 0;
 
 void led_blinking_task(void);
 void audio_task(void);
@@ -590,7 +592,11 @@ bool tud_audio_rx_done_isr(uint8_t rhport, uint16_t n_bytes_received, uint8_t fu
   (void) ep_out;
   (void) cur_alt_setting;
 
-  spk_data_size = tud_audio_read(spk_buf, n_bytes_received);
+  uint32_t data_size = tud_audio_read(spk_buf, n_bytes_received);
+  // Protect write with interrupt disable to prevent race with Timer ISR
+  uint32_t save = save_and_disable_interrupts();
+  spk_data_size = data_size;
+  restore_interrupts(save);
 
   return true;
 }
@@ -604,15 +610,23 @@ bool tud_audio_rx_done_isr(uint8_t rhport, uint16_t n_bytes_received, uint8_t fu
 void audio_task(void) {
   static uint32_t start_ms = 0;
 
-  if (spk_data_size) {
+  // Protect read-modify-write with interrupt disable to prevent race with USB ISR
+  uint32_t save = save_and_disable_interrupts();
+  uint32_t current_size = spk_data_size;
+  bool has_data = (current_size > 0);
+  if (has_data) {
+    spk_data_size = 0;
+  }
+  restore_interrupts(save);
+
+  if (has_data) {
     static int32_t uac_buf_l[I2S_QUEUE_MAX];
     static int32_t uac_buf_r[I2S_QUEUE_MAX];
 
     // i2sキューに積む
-    int rx_length = i2s_unpack_uacdata(spk_buf, spk_data_size, current_resolution, uac_buf_l, uac_buf_r);
+    int rx_length = i2s_unpack_uacdata(spk_buf, current_size, current_resolution, uac_buf_l, uac_buf_r);
     i2s_volume(uac_buf_l, uac_buf_r, rx_length);
     i2s_enqueue(uac_buf_l, uac_buf_r, rx_length);
-    spk_data_size = 0;
 
     // フィードバックは1msに1回
     uint32_t curr_ms = board_millis();

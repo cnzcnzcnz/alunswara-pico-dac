@@ -57,6 +57,7 @@ bool ssd1306_init(ssd1306_t *oled) {
     /* Clear framebuffer */
     memset(oled->buffer, 0, SSD1306_BUF_SIZE);
     oled->modified = false;
+    oled->is_healthy = true;  // Initialize display as healthy
 
     return true;
 }
@@ -158,24 +159,62 @@ void ssd1306_draw_string(ssd1306_t *oled, int16_t x, int16_t y, const char *str,
     oled->modified = true;
 }
 
-void ssd1306_display(ssd1306_t *oled) {
+bool ssd1306_display(ssd1306_t *oled) {
+    if (!oled->is_healthy) {
+        return false;  // Skip if display already known bad
+    }
+
     /* Set column address range: 0 to 127 */
-    ssd1306_send_command(0x21);  /* Set column address */
-    ssd1306_send_command(0);     /* Start column */
-    ssd1306_send_command(127);   /* End column */
+    int ret = ssd1306_send_command(0x21);
+    if (ret < 0) {
+        oled->is_healthy = false;
+        return false;
+    }
+    
+    ret = ssd1306_send_command(0);
+    if (ret < 0) {
+        oled->is_healthy = false;
+        return false;
+    }
+    
+    ret = ssd1306_send_command(127);
+    if (ret < 0) {
+        oled->is_healthy = false;
+        return false;
+    }
 
     /* Set page address range: 0 to 3 (4 pages for 32-pixel height) */
-    ssd1306_send_command(0x22);  /* Set page address */
-    ssd1306_send_command(0);     /* Start page */
-    ssd1306_send_command(3);     /* End page */
+    ret = ssd1306_send_command(0x22);
+    if (ret < 0) {
+        oled->is_healthy = false;
+        return false;
+    }
+    
+    ret = ssd1306_send_command(0);
+    if (ret < 0) {
+        oled->is_healthy = false;
+        return false;
+    }
+    
+    ret = ssd1306_send_command(3);
+    if (ret < 0) {
+        oled->is_healthy = false;
+        return false;
+    }
 
     /* Send framebuffer data with 0x40 control byte prefix (data mode) */
-    uint8_t buf[SSD1306_BUF_SIZE + 1];
+    static uint8_t buf[SSD1306_BUF_SIZE + 1];  // Static allocation to avoid stack overflow
     buf[0] = 0x40;  /* Data control byte */
     memcpy(&buf[1], oled->buffer, SSD1306_BUF_SIZE);
-    i2c_write_timeout_us(SSD1306_I2C, SSD1306_I2C_ADDR, buf, SSD1306_BUF_SIZE + 1, false, 50000);
+    ret = i2c_write_timeout_us(SSD1306_I2C, SSD1306_I2C_ADDR, buf, SSD1306_BUF_SIZE + 1, false, 50000);
+    
+    if (ret < 0) {
+        oled->is_healthy = false;
+        return false;
+    }
 
     oled->modified = false;
+    return true;
 }
 
 void ssd1306_set_contrast(uint8_t contrast) {

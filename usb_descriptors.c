@@ -165,16 +165,9 @@ uint8_t const *tud_descriptor_other_speed_configuration_cb(uint8_t index) {
 // Descriptor contents must exist long enough for transfer to complete
 uint8_t const * tud_descriptor_configuration_cb(uint8_t index) {
   (void) index; // for multiple configurations
-#if TUD_OPT_HIGH_SPEED
-  // Although we are highspeed, host may be fullspeed.
-  if(tud_speed_get() == TUSB_SPEED_FULL) {
-    return desc_uac1_configuration;
-  } else {
-    return desc_uac2_configuration;
-  }
-#else
-    return desc_uac1_configuration;
-#endif
+  
+  // RP2040 only support full-speed, always return UAC1 configuration
+  return desc_uac1_configuration;
 }
 
 //--------------------------------------------------------------------+

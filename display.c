@@ -37,7 +37,10 @@ void display_init(void) {
 
     /* Render first frame of splash animation */
     memcpy(g_oled.buffer, SPLASH_FRAMES[0], SPLASH_FRAME_BYTES);
-    ssd1306_display(&g_oled);
+    if (!ssd1306_display(&g_oled)) {
+        g_display_available = false;
+        return;
+    }
 
     g_splash_frame = 0;
     g_phase = DISPLAY_PHASE_SPLASH;
@@ -64,7 +67,9 @@ void display_update(void) {
             } else {
                 /* Show next frame */
                 memcpy(g_oled.buffer, SPLASH_FRAMES[g_splash_frame], SPLASH_FRAME_BYTES);
-                ssd1306_display(&g_oled);
+                if (!ssd1306_display(&g_oled)) {
+                    g_display_available = false;  // Mark display as unavailable
+                }
             }
         }
         break;
@@ -159,5 +164,7 @@ static void display_render_current_info(void) {
     ssd1306_draw_string(&g_oled, 0, 24, strings.line3,
                         font_5x8, FONT_5X8_WIDTH, FONT_5X8_HEIGHT);
 
-    ssd1306_display(&g_oled);
+    if (!ssd1306_display(&g_oled)) {
+        g_display_available = false;  // Mark display as unavailable if error
+    }
 }

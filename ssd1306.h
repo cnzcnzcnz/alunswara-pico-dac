@@ -12,6 +12,7 @@
 typedef struct {
     uint8_t buffer[SSD1306_BUF_SIZE];
     bool    modified;
+    bool    is_healthy;  // Display health status: true if OLED accessible, false if I2C error detected
 } ssd1306_t;
 
 // Initialize SSD1306 display via I2C. Returns true if display detected.
@@ -31,8 +32,8 @@ void ssd1306_draw_char(ssd1306_t *oled, int16_t x, int16_t y, char c,
 void ssd1306_draw_string(ssd1306_t *oled, int16_t x, int16_t y, const char *str,
                          const uint8_t *font, uint8_t font_width, uint8_t font_height);
 
-// Transfer framebuffer to the SSD1306 display via I2C
-void ssd1306_display(ssd1306_t *oled);
+// Transfer framebuffer to the SSD1306 display via I2C. Returns true if successful.
+bool ssd1306_display(ssd1306_t *oled);
 
 // Set display contrast (0-255). Used for fade transitions.
 void ssd1306_set_contrast(uint8_t contrast);

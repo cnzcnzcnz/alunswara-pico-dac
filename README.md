@@ -2,13 +2,13 @@
 
 A USB Digital-to-Analog Converter (DDC) based on Raspberry Pi Pico (RP2040) with I2S output, master clock (MCLK), and OLED display.
 
-Supports USB Audio Class 1 (Full-Speed) and Class 2 (High-Speed) with up to **96kHz / 24-bit stereo** Hi-Res audio playback. Real-time audio information is shown on a 128x32 SSD1306 OLED display.
+Supports USB Audio Class 1 (Full-Speed only - RP2040 hardware limitation) with up to **96kHz / 24-bit stereo** Hi-Res audio playback. Real-time audio information is shown on a 128x32 SSD1306 OLED display.
 
 Based on [pico_usb_i2s_speaker](https://github.com/BambooMaster/pico_usb_i2s_speaker) by BambooMaster.
 
 ## Features
 
-- **USB Audio**: UAC1 (Full-Speed) + UAC2 (High-Speed) dual-mode
+- **USB Audio**: UAC1 (Full-Speed only - RP2040 hardware limitation)
 - **Hi-Res Audio**: 44.1 / 48 / 88.2 / 96 kHz, 16-bit and 24-bit stereo
 - **I2S Output**: Low-jitter MCLK via PIO (pico-i2s-pio library)
 - **OLED Display**: SSD1306 128x32 with boot animation and real-time audio info

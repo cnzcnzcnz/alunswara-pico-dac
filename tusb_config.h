@@ -43,8 +43,9 @@ extern "C" {
 #endif
 
 // RHPort max operational speed can defined by board.mk
+// RP2040 hardware supports USB Full-Speed only (12 Mbps), not High-Speed (480 Mbps)
 #ifndef BOARD_TUD_MAX_SPEED
-#define BOARD_TUD_MAX_SPEED   OPT_MODE_DEFAULT_SPEED
+#define BOARD_TUD_MAX_SPEED   OPT_MODE_FULL_SPEED
 #endif
 
 //--------------------------------------------------------------------
