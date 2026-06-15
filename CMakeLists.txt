@@ -41,6 +41,10 @@ pico_sdk_init()
 add_executable(pico_usb_i2s_speaker
         main.c
         usb_descriptors.c
+        audio_state.c
+        ssd1306.c
+        font.c
+        display.c
         )
 
 pico_set_program_name(pico_usb_i2s_speaker "pico_usb_i2s_speaker")
@@ -68,6 +72,7 @@ add_subdirectory(${CMAKE_SOURCE_DIR}/lib/pico-i2s-pio)
 target_link_libraries(pico_usb_i2s_speaker
         hardware_clocks
         hardware_dma
+        hardware_i2c
         pico_multicore
         tinyusb_device
         tinyusb_board

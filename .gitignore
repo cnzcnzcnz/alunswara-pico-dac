@@ -1,2 +1,7 @@
 build
 .vscode
+CONTEXT.md
+.kiro/specs/oled-display-ssd1306/.config.kiro
+.kiro/specs/oled-display-ssd1306/design.md
+.kiro/specs/oled-display-ssd1306/requirements.md
+.kiro/specs/oled-display-ssd1306/tasks.md

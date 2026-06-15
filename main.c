@@ -37,6 +37,8 @@
 #include "pico/multicore.h"
 
 #include "i2s.h"
+#include "display.h"
+#include "audio_state.h"
 
 //--------------------------------------------------------------------+
 // MACRO CONSTANT TYPEDEF PROTOTYPES
@@ -129,7 +131,13 @@ int main(void) {
   irq_set_priority(irq_num, PICO_LOWEST_IRQ_PRIORITY);
   alarm_pool_add_repeating_timer_us(low_prio_pool, -TUD_TASK_INTERVAL_US, tud_timer_callback, NULL, &tud_timer);
 
-  while (1) __wfi;
+  // Initialize OLED display
+  display_init();
+
+  while (1) {
+    display_update();
+    __wfi();
+  }
 }
 
 //--------------------------------------------------------------------+
@@ -139,11 +147,13 @@ int main(void) {
 // Invoked when device is mounted
 void tud_mount_cb(void) {
   blink_interval_ms = BLINK_MOUNTED;
+  audio_state_set_connected(true);
 }
 
 // Invoked when device is unmounted
 void tud_umount_cb(void) {
   blink_interval_ms = BLINK_NOT_MOUNTED;
+  audio_state_set_connected(false);
 }
 
 // Invoked when usb bus is suspended
@@ -152,6 +162,7 @@ void tud_umount_cb(void) {
 void tud_suspend_cb(bool remote_wakeup_en) {
   (void) remote_wakeup_en;
   blink_interval_ms = BLINK_SUSPENDED;
+  audio_state_set_streaming(false);
 }
 
 // Invoked when usb bus is resumed
@@ -178,6 +189,7 @@ static bool audio10_set_req_ep(tusb_control_request_t const *p_request, uint8_t 
 
         current_sample_rate = tu_unaligned_read32(pBuff) & 0x00FFFFFF;
         i2s_mclk_change_clock(current_sample_rate);
+        audio_state_set_sample_rate(current_sample_rate);
 
         TU_LOG2("EP set current freq: %" PRIu32 "\r\n", current_sample_rate);
 
@@ -383,6 +395,7 @@ static bool audio20_clock_set_request(audio20_control_request_t const *request, 
     TU_VERIFY(request->wLength == sizeof(audio20_control_cur_4_t));
 
     current_sample_rate = (uint32_t) ((audio20_control_cur_4_t const *) buf)->bCur;
+    audio_state_set_sample_rate(current_sample_rate);
 
     TU_LOG1("Clock set current freq: %" PRIu32 "\r\n", current_sample_rate);
 
@@ -492,6 +505,8 @@ bool tud_audio_set_itf_cb(uint8_t rhport, tusb_control_request_t const *p_reques
 
   if (alt != 0) {
     current_resolution = resolutions_per_format[alt - 1];
+    audio_state_set_resolution(current_resolution);
+    audio_state_set_streaming(true);
   }
 
   return true;
@@ -560,8 +575,10 @@ bool tud_audio_set_itf_close_ep_cb(uint8_t rhport, tusb_control_request_t const 
   uint8_t const itf = tu_u16_low(tu_le16toh(p_request->wIndex));
   uint8_t const alt = tu_u16_low(tu_le16toh(p_request->wValue));
 
-  if (ITF_NUM_AUDIO_STREAMING == itf && alt == 0)
+  if (ITF_NUM_AUDIO_STREAMING == itf && alt == 0) {
     blink_interval_ms = BLINK_MOUNTED;
+    audio_state_set_streaming(false);
+  }
 
   return true;
 }
